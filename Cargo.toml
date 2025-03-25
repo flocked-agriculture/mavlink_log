@@ -1,0 +1,28 @@
+[package]
+name = "mavlink_log"
+version = "0.1.0"
+edition = "2024"
+authors = [
+    "Wesley Murray",
+]
+description = "Provides utilities for interacting with a simple mavlink log."
+repository = "https://github.com/flocked-agriculture/mavlink_utils"
+readme ="./README.md"
+license = "MIT/Apache-2.0"
+
+[dependencies]
+uuid = { version = "1.15.1", features = ["v4"], optional = true }
+rotating_file_handler = { version = "0.2.0" , optional = true }
+mavlink = { version = "0.13.1", default-features = false }
+
+[features]
+# TODO: there is more configurability available for mavlink but we only include scope that has been tested
+experimental = [] # place holder for any feature development that is experimental. effectively a feature flag.
+parser = ["mavlink/default"]
+logger = ["mavlink/default", "rotating_file_handler"]
+mavlog = ["uuid/v4"]
+tlog = []
+all = ["mavlog", "tlog", "logger", "parser"]
+
+[dev-dependencies]
+tempfile = "3.19.1"

@@ -17,7 +17,6 @@ mavlink = { version = "0.13.1", default-features = false }
 
 [features]
 # TODO: there is more configurability available for mavlink but we only include scope that has been tested
-experimental = [] # place holder for any feature development that is experimental. effectively a feature flag.
 parser = ["mavlink/default"]
 logger = ["mavlink/default", "rotating_file_handler"]
 mavlog = ["uuid/v4"]

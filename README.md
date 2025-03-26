@@ -1,8 +1,10 @@
 # Mavlink Log
 
 [![Crates.io Version](https://img.shields.io/crates/v/mavlink_log.svg)](https://crates.io/crates/mavlink_log)
+[![Documentation](https://docs.rs/mavlink_log/badge.svg)](https://docs.rs/mavlink_log)
 ![Build + Test](https://github.com/flocked-agriculture/mavlink_log/actions/workflows/main_ci.yml/badge.svg?branch=main)
 ![Build + Test + Deploy](https://github.com/flocked-agriculture/mavlink_log/actions/workflows/release.yml/badge.svg)
+![GitHub Issues](https://img.shields.io/github/issues/flocked-agriculture/mavlink_log.svg?style=flat-square)
 
 ## Installation
 

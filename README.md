@@ -1,5 +1,8 @@
 # Mavlink Log
 
+[![Crates.io Version](https://img.shields.io/crates/v/mavlink_log.svg)](https://crates.io/crates/mavlink_log)
+![Build + Test](https://github.com/flocked-agriculture/mavlink_log/actions/workflows/main_ci.yml/badge.svg?branch=main)
+
 ## Installation
 
 `cargo add mavlink_log`

@@ -1,0 +1,64 @@
+name: Release (Build + Test + Deploy)
+
+on:
+  push:
+    tags:
+      - "v*.*.*" # Trigger on semantic versioning tags
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Set up Rust
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      # Verify the crate version matches the git tag
+      - name: Verify crate version
+        id: verify_version
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          CRATE_VERSION=$(grep '^version' Cargo.toml | sed -E 's/version = "(.*)"/\1/')
+          if [ "$TAG_VERSION" != "$CRATE_VERSION" ]; then
+            echo "Error: Git tag version ($TAG_VERSION) does not match crate version ($CRATE_VERSION)."
+            exit 1
+          fi
+
+      # Run tests
+      - name: Run tests
+        run: cargo test --features all --verbose
+
+      # Build the crate
+      - name: Build crate
+        run: cargo build --features all --release
+
+      # Build documentation
+      - name: Build documentation
+        run: cargo doc --features all --no-deps
+
+      # Publish to crates.io
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --verbose
+
+      # Create a GitHub release
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body_path: releases/${{ github.ref_name }}.md
+          draft: false
+          prerelease: false

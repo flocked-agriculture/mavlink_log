@@ -49,7 +49,7 @@ jobs:
       - name: Publish to crates.io
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish --verbose
+        run: cargo publish --features all --verbose
 
       # Create a GitHub release
       - name: Create GitHub Release

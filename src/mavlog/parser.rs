@@ -66,7 +66,7 @@ impl<M: Message> MavParser for MavlinkOnlyNoTimestampParser<M> {
     ///
     /// Panics if the `read_versioned_msg` function encounters an unrecoverable error.
     ///
-    fn next(&mut self) -> Result<LogEntry<M>, MessageReadError> {
+    fn parse_next_entry(&mut self) -> Result<LogEntry<M>, MessageReadError> {
         let mut entry: LogEntry<M> = LogEntry::default();
         // NOTE: the read_versioned_msg function will do a blocking search for the next valid mavlink packet if
         // it tries to unpack the current data and gets something unexpected. Since this is a mavlink only file with
@@ -111,7 +111,7 @@ impl<M: Message> MavParser for TimestampedMavlinkOnlyParser<M> {
     ///
     /// Panics if the `peek_exact` or `read_exact` methods encounter an unrecoverable error.
     ///
-    fn next(&mut self) -> Result<LogEntry<M>, MessageReadError> {
+    fn parse_next_entry(&mut self) -> Result<LogEntry<M>, MessageReadError> {
         let mut entry: LogEntry<M> = LogEntry::default();
         let magic_number: u8 = match self.mav_version {
             MavlinkVersion::V1 => mavlink::MAV_STX,
@@ -170,7 +170,7 @@ impl<M: Message> MavParser for MixedParser<M> {
     ///
     /// Panics if the entry payload size cannot be read because this is unrecoverable.
     ///
-    fn next(&mut self) -> Result<LogEntry<M>, MessageReadError> {
+    fn parse_next_entry(&mut self) -> Result<LogEntry<M>, MessageReadError> {
         let mut entry: LogEntry<M> = LogEntry::default();
         let entry_type: EntryType = self
             .reader
@@ -361,7 +361,7 @@ impl<M: Message + 'static> MavParser for MavLogParser<M> {
     ///
     /// a `LogEntry` containing the parsed data, which may include a timestamp, MAVLink message, or text.
     ///
-    fn next(&mut self) -> Result<LogEntry<M>, MessageReadError> {
-        self.parser.next()
+    fn parse_next_entry(&mut self) -> Result<LogEntry<M>, MessageReadError> {
+        self.parser.parse_next_entry()
     }
 }

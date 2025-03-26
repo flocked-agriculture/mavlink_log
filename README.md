@@ -2,6 +2,7 @@
 
 [![Crates.io Version](https://img.shields.io/crates/v/mavlink_log.svg)](https://crates.io/crates/mavlink_log)
 ![Build + Test](https://github.com/flocked-agriculture/mavlink_log/actions/workflows/main_ci.yml/badge.svg?branch=main)
+![Build + Test + Deploy](https://github.com/flocked-agriculture/mavlink_log/actions/workflows/release.yml/badge.svg)
 
 ## Installation
 
@@ -12,9 +13,196 @@
 [.mav log](docs/mav_log_file_format.md) - requires the MavLog feature
 [.tlog log](docs/tlog_file_format.md) - requires the Tlog feature
 
+## Known Issues
+
+### read_versioned_msg
+
+> **NOTE**
+> This is only relevant when parsing a .mav file that does not have the mavlink_only format flag set to true or no_timestamp is false.
+
+The read_versioned_msg function from rust_mavlink is not built for mixed data streams which can cause problems on the mixed stream log file. Specifically it will search through the data for the mavlink packet start key. This only a problem for our parser if the file data got corrupted or an unexpected message defintion was used. Meaning it tried to read the current mavlink packet and failed. This method will immediately search for the next valid MAVLink message. It should in theory recover on the next mavlink message but until then, it is looping over potentially valid non mavlink file records or there could be false positives. This can result in misaligned timestamps as well.
+
+We would rather it exit on failure so we can take the data as raw and move on to the next entry.
+
 ## Examples
 
-TBD - generate examples with the different features
+> **WARNING**
+> The following examples are were pieced together from the automated testing. They are meant to illustrate the usage concept and thus could err if attempting to run on your system.
+
+### Mav File Logging
+
+features: mavlog, logger
+
+```rust
+use mavlink_log::mav_logger::MavLogger;
+use mavlink_log::mavlog::header::FormatFlags;
+use mavlink_log::mavlog::logger::RotatingMavLogger;
+use mavlink::common::MavMessage;
+use mavlink::{MavHeader, MavlinkVersion, MavFrame};
+
+fn main() {
+    // initialize a mav logger with no optimizations
+    // this means all entries will be timestamped and raw, text, mavlink are all supported
+    let mut logger: RotatingMavLogger =
+            RotatingMavLogger::new("/tmp/ground_station.mav", 1024, 3, None, None)
+                .expect("Failed to create logger");
+
+    // example mav frame. this would most likely be received from a mavlink connection
+    let mav_frame = MavFrame {
+        header: MavHeader::default(),
+        msg: MavMessage::HEARTBEAT(Default::default()),
+        protocol_version: MavlinkVersion::V2,
+    };
+
+    // write mavlink
+    let result = logger.write_mavlink(mav_frame);
+    assert!(result.is_ok());
+
+    // write text
+    let result = logger.write_text("Test log entry");
+    assert!(result.is_ok());
+
+    // write raw
+    let result = logger.write_raw(&[1, 2, 3, 4, 5]);
+    assert!(result.is_ok());
+
+    // initialize a mav logger with optimizations
+    let flags = FormatFlags {
+        mavlink_only: true,
+        no_timestamp: true,
+    };
+    let mut logger: RotatingMavLogger =
+            RotatingMavLogger::new("/tmp/ground_station.mav", 1024, 3, Some(flags), None)
+                .expect("Failed to create logger");
+
+    // example mav frame. this would most likely be received from a mavlink connection
+    let mav_frame = MavFrame {
+        header: MavHeader::default(),
+        msg: MavMessage::HEARTBEAT(Default::default()),
+        protocol_version: MavlinkVersion::V2,
+    };
+
+    // write mavlink
+    let result = logger.write_mavlink(mav_frame);
+    assert!(result.is_ok());
+
+    // write text
+    let result = logger.write_text("Test log entry");
+    assert!(!result.is_ok());
+
+    // write raw
+    let result = logger.write_raw(&[1, 2, 3, 4, 5]);
+    assert!(!result.is_ok());
+}
+```
+
+### Mav File Parsing
+
+features: mavlog, parser
+
+```rust
+use std::io::ErrorKind::UnexpectedEof;
+use mavlink::common::MavMessage;
+use mavlink::error::MessageReadError;
+use mavlink_log::mavlog::parser::MavLogParser;
+use mavlink_log::mav_parser::{LogEntry, MavParser};
+
+fn main() {
+    let mut parser = MavLogParser::<MavMessage>::new("/tmp/ground_station.mav");
+    let mut count: u64 = 0;
+    loop {
+        // retrieve next entry in a loop
+        let entry: Result<LogEntry<MavMessage>, MessageReadError> = parser.parse_next_entry();
+        match entry {
+            Ok(entry_data) => {
+                count += 1;
+                // optionally get timestamp
+                let timestamp = entry_data.timestamp;
+                // optionally get the mavlink header
+                let mav_header = entry_data.mav_header;
+                // optionally get the mavlink message
+                let mav_message = entry_data.mav_message;
+                // optionally get text
+                let text = entry_data.text;
+                // optionally get raw
+                let raw = entry_data.raw;
+            }
+            // exit loop on end of file
+            Err(MessageReadError::Io(e)) => {
+                if e.kind() == UnexpectedEof {
+                    break
+                }
+            },
+            Err(_) => {},
+        }
+    }
+}
+
+```
+
+### Tlog File Logging
+
+features: tlog, logger
+
+```rust
+use mavlink_log::mav_logger::MavLogger;
+use mavlink_log::tlog::logger::RotatingTlog;
+use mavlink::common::MavMessage;
+use mavlink::{MavHeader, MavlinkVersion, MavFrame};
+
+fn main(){
+    // example mav frame. this would most likely be received from a mavlink connection
+    let mav_frame = MavFrame {
+        header: MavHeader::default(),
+        msg: MavMessage::HEARTBEAT(Default::default()),
+        protocol_version: MavlinkVersion::V2,
+    };
+
+    // initialize rotating tlog logger
+    let mut logger = RotatingTlog::new("/tmp/ground_station.tlog", 1024, 3).unwrap();
+    // write a mavlink frame
+    let result = logger.write_mavlink(mav_frame);
+    assert!(result.is_ok());
+}
+```
+
+### Tlog File Parsing
+
+features: tlog, parser
+
+```rust
+use std::io::ErrorKind::UnexpectedEof;
+use mavlink::common::MavMessage;
+use mavlink::error::MessageReadError;
+use mavlink_log::mav_parser::{LogEntry, MavParser};
+use mavlink_log::tlog::parser::TlogParser;
+
+fn main() {
+    // initialize the tlog parser
+    let mut tlog = TlogParser::<MavMessage>::new("/tmp/ground_station.tlog");
+    let mut count: u64 = 0;
+    loop {
+        // retrieve next entry in a loop
+        let entry: Result<LogEntry<MavMessage>, MessageReadError> = tlog.parse_next_entry();
+        match entry {
+            Ok(entry_data) => {
+                count += 1;
+                // optionally get the mavlink header
+                let mav_header = entry_data.mav_header;
+                // optionally get the mavlink message
+                let mav_message = entry_data.mav_message;
+            }
+            // exit loop on end of file
+            Err(MessageReadError::Io(e)) => {
+                if e.kind() == UnexpectedEof {
+                    break
+                }
+            },
+            Err(_) => {},
+        }
+    }
+}
+```
 
 ## License
 
@@ -60,7 +248,7 @@ The git tag will kick off an automated process that deploys the crate to crates.
 - return error rather than panic even on critical errors so a parent can potentially handle and take action
 - extract timestamps from tlog while parsing
 - support async
-- allow optional buffering during writing
+- allow optional buffering during writing. maybe use features to support this.
 - use rust features to select for certain optimizations such as no timestamps or mavlink only
 - support no copy logging if possible and necessary
 - add support for logging in embedded systems

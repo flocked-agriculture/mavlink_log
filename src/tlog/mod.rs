@@ -1,5 +1,5 @@
 #[cfg(feature = "parser")]
-pub mod tlog_parser;
+pub mod parser;
 
 #[cfg(feature = "logger")]
-pub mod tlog_logger;
+pub mod logger;

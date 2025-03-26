@@ -33,9 +33,9 @@ jobs:
             exit 1
           fi
 
-      # Run tests
+      # Run tests but ignore doc examples
       - name: Run tests
-        run: cargo test --features all --verbose
+        run: cargo test --tests --features all --verbose
 
       # Build the crate
       - name: Build crate

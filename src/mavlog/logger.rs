@@ -1,6 +1,7 @@
 /// This module defines a rotating file logger for MAVLink messages.
 /// It supports logging raw data, text, and MAVLink messages with optional
 /// format flags and message definitions.
+/// You can learn more at docs/mav_log_file_format.md.
 use std::option::Option;
 use std::option::Option::Some;
 use std::time::SystemTime;
@@ -21,18 +22,20 @@ enum EntryType {
 }
 
 /// Struct representing a rotating file logger for MAVLink messages.
-pub struct RotatingFileMavLogger {
+pub struct RotatingMavLogger {
     header: FileHeader,
     time: SystemTime,
     file_handler: RotatingFileHandler,
 }
 
-impl RotatingFileMavLogger {
+impl RotatingMavLogger {
     /// Creates a new `RotatingFileMavLogger`.
     ///
     /// # Arguments
     ///
-    /// * `base_path` - The base path for the log files.
+    /// * `base_path` - The base path for the log files. A file extension of .mav is recommended.
+    ///     If the path includes more than the file name, such as parent directories, it is
+    ///     expected the folder path already exists.
     /// * `max_bytes` - The maximum size of a log file before it is rotated.
     /// * `backup_count` - The number of backup files to keep.
     /// * `format_flags` - Optional format flags for the log file.
@@ -75,7 +78,7 @@ impl RotatingFileMavLogger {
     }
 }
 
-impl MavLogger for RotatingFileMavLogger {
+impl MavLogger for RotatingMavLogger {
     /// Writes a MAVLink message to the log.
     ///
     /// # Arguments
@@ -101,7 +104,7 @@ impl MavLogger for RotatingFileMavLogger {
     }
 }
 
-impl RotatingFileMavLogger {
+impl RotatingMavLogger {
     /// Writes a text message to the log.
     ///
     /// # Arguments
@@ -189,7 +192,7 @@ mod tests {
     use super::*;
 
     /// Helper function to populate the log file with MAVLink, text, and raw data entries.
-    fn populate_log_file(logger: &mut RotatingFileMavLogger) {
+    fn populate_log_file(logger: &mut RotatingMavLogger) {
         // Define a MAVLink message to log
         let mavlink_message: MavFrame<MavMessage> = MavFrame {
             header: MavHeader::default(),
@@ -232,8 +235,8 @@ mod tests {
         let tmpfile_path = tmpfile.path().to_str().unwrap();
 
         // Create a new logger instance
-        let mut logger: RotatingFileMavLogger =
-            RotatingFileMavLogger::new(tmpfile_path, 1000, 0, None, None)
+        let mut logger: RotatingMavLogger =
+            RotatingMavLogger::new(tmpfile_path, 1000, 0, None, None)
                 .expect("Failed to create logger");
 
         // Populate the log file
@@ -360,8 +363,8 @@ mod tests {
         };
 
         // Create a new logger instance with the format flags
-        let mut logger: RotatingFileMavLogger =
-            RotatingFileMavLogger::new(tmpfile_path, 1000, 0, Some(format_flags), None)
+        let mut logger: RotatingMavLogger =
+            RotatingMavLogger::new(tmpfile_path, 1000, 0, Some(format_flags), None)
                 .expect("Failed to create logger");
 
         // Populate the log file
@@ -461,8 +464,8 @@ mod tests {
         };
 
         // Create a new logger instance with the format flags
-        let mut logger: RotatingFileMavLogger =
-            RotatingFileMavLogger::new(tmpfile_path, 1000, 0, Some(format_flags), None)
+        let mut logger: RotatingMavLogger =
+            RotatingMavLogger::new(tmpfile_path, 1000, 0, Some(format_flags), None)
                 .expect("Failed to create logger");
 
         populate_log_file(&mut logger);

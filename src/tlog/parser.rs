@@ -52,7 +52,7 @@ impl<M: Message> MavParser for TlogParser<M> {
     /// The `LogEntry` contains the MAVLink message, its header, and optional
     /// metadata such as a timestamp or raw data.
     ///
-    fn next(&mut self) -> Result<LogEntry<Self::M>, MessageReadError> {
+    fn parse_next_entry(&mut self) -> Result<LogEntry<Self::M>, MessageReadError> {
         match self.file_conn.recv() {
             Ok((header, msg)) => Ok(LogEntry {
                 timestamp: None,

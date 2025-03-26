@@ -1,7 +1,7 @@
-mod header;
+pub mod header;
 
 #[cfg(feature = "parser")]
-pub mod mavlog_parser;
+pub mod parser;
 
 #[cfg(feature = "logger")]
-pub mod mavlog_logger;
+pub mod logger;

@@ -78,6 +78,6 @@ pub mod mav_parser {
         /// # Returns
         /// - `Ok(LogEntry<Self::M>)`: The next log entry if successfully read.
         /// - `Err(MessageReadError)`: An error if the log entry could not be read.
-        fn next(&mut self) -> Result<LogEntry<Self::M>, MessageReadError>;
+        fn parse_next_entry(&mut self) -> Result<LogEntry<Self::M>, MessageReadError>;
     }
 }

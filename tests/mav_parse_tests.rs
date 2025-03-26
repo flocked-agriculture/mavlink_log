@@ -9,7 +9,7 @@ mod mav_parse_tests {
     };
     use mavlink::{MAVLinkV2MessageRaw, MavHeader};
     use mavlink_log::mav_parser::MavParser;
-    use mavlink_log::mavlog::mavlog_parser::MavLogParser;
+    use mavlink_log::mavlog::parser::MavLogParser;
 
     use tempfile;
 
@@ -193,7 +193,7 @@ mod mav_parse_tests {
             temp_file.path().to_str().unwrap(),
         );
         for i in 0..60 {
-            let entry = parser.next();
+            let entry = parser.parse_next_entry();
             assert!(entry.is_ok(), "{i} {:?}", entry.err());
             let entry = entry.unwrap();
             assert!(entry.timestamp.is_none());
@@ -231,7 +231,7 @@ mod mav_parse_tests {
             temp_file.path().to_str().unwrap(),
         );
         for i in 0..60 {
-            let entry = parser.next();
+            let entry = parser.parse_next_entry();
             assert!(entry.is_ok(), "Iteration: {i} {:?}", entry.err());
             let entry = entry.unwrap();
             assert!(entry.timestamp.is_some(), "Iteration: {i}");
@@ -274,7 +274,7 @@ mod mav_parse_tests {
         );
         for i in 0..20 {
             // handle raw entry
-            let entry = parser.next();
+            let entry = parser.parse_next_entry();
             assert!(entry.is_ok(), "Iteration: {i} {:?}", entry.err());
             let entry = entry.unwrap();
             assert!(entry.timestamp.is_some(), "Iteration: {i}");
@@ -290,7 +290,7 @@ mod mav_parse_tests {
             );
 
             // handle text entry
-            let entry = parser.next();
+            let entry = parser.parse_next_entry();
             assert!(entry.is_ok(), "Iteration: {i} {:?}", entry.err());
             let entry = entry.unwrap();
             assert!(entry.timestamp.is_some(), "Iteration: {i}");
@@ -304,7 +304,7 @@ mod mav_parse_tests {
 
             // handle mavlink entries
             for j in 0..3 {
-                let entry = parser.next();
+                let entry = parser.parse_next_entry();
                 assert!(entry.is_ok(), "Iteration: {i} {:?}", entry.err());
                 let entry = entry.unwrap();
                 assert!(entry.timestamp.is_some(), "Iteration: {i}");
@@ -349,7 +349,7 @@ mod mav_parse_tests {
         );
 
         // Check the first iteration
-        let first_entry = parser.next();
+        let first_entry = parser.parse_next_entry();
         assert!(
             first_entry.is_ok(),
             "First iteration failed: {:?}",
@@ -367,7 +367,7 @@ mod mav_parse_tests {
 
         // Check subsequent iterations
         for i in 1..60 {
-            let entry = parser.next();
+            let entry = parser.parse_next_entry();
             assert!(entry.is_ok(), "Iteration: {i} {:?}", entry.err());
             let entry = entry.unwrap();
             assert!(entry.timestamp.is_some(), "Iteration: {i}");

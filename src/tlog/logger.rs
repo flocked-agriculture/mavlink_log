@@ -1,7 +1,7 @@
 //! This module defines the `RotatingTLog` struct which implements the `MavLogger` trait.
 //! It provides functionality to log MAVLink messages to a rotating tlog file.
 //! The tlog format is the informal logging format used by MAVLink ground stations.
-//! https://docs.qgroundcontrol.com/master/en/qgc-dev-guide/file_formats/mavlink.html
+//! You can learn more at docs/tlog_file_format.md.
 
 use std::time::SystemTime;
 
@@ -13,16 +13,18 @@ use mavlink::{MAVLinkV1MessageRaw, MAVLinkV2MessageRaw};
 
 /// `RotatingTLog` is a logger that writes MAVLink messages to a file with rotation support.
 /// The log file rotates when it reaches a specified size limit.
-pub struct RotatingTLog {
+pub struct RotatingTlog {
     file_handler: RotatingFileHandler,
 }
 
-impl RotatingTLog {
+impl RotatingTlog {
     /// Creates a new `RotatingTLog` instance.
     ///
     /// # Arguments
     ///
-    /// * `base_path` - The base path for the log files.
+    /// * `base_path` - The base path for the log files. A file extension of .tlog is recommended.
+    ///     If the path includes more than the file name, such as parent directories, it is
+    ///     expected the folder path already exists.
     /// * `max_bytes` - The maximum size in bytes before the log file rotates.
     /// * `backup_count` - The number of backup files to keep.
     ///
@@ -35,7 +37,7 @@ impl RotatingTLog {
     }
 }
 
-impl MavLogger for RotatingTLog {
+impl MavLogger for RotatingTlog {
     /// Writes a MAVLink message to the log file.
     ///
     /// # Arguments
@@ -86,7 +88,7 @@ mod tests {
         std::fs::remove_file(CASE_FILE_NAME).unwrap_or_else(|_| {});
 
         // Create a new RotatingTLog instance with a maximum size of 1024 bytes and no backup files
-        let mut logger = RotatingTLog::new(CASE_FILE_NAME, 1024, 0).unwrap();
+        let mut logger = RotatingTlog::new(CASE_FILE_NAME, 1024, 0).unwrap();
 
         // Define two MAVLink frames with different messages
         let mav_frame1 = MavFrame {

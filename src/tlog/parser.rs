@@ -3,8 +3,13 @@
 /// implements the `MavParser` trait to read and process MAVLink messages
 /// from a TLOG file.
 /// See /docs/tlog_file_format.md for more information on the TLOG file format.
+use std::fs::File;
+use std::io::{BufReader, Error, ErrorKind};
+
 use mavlink::error::MessageReadError;
-use mavlink::{MavConnection, Message};
+use mavlink::peek_reader::PeekReader;
+use mavlink::{MavlinkVersion, Message};
+use mavlink_tlog::{TlogReader, Version};
 
 use crate::mav_parser::LogEntry;
 use crate::mav_parser::MavParser;
@@ -18,8 +23,9 @@ use crate::mav_parser::MavParser;
 /// # Type Parameters
 /// - `M`: The type of MAVLink message being parsed.
 pub struct TlogParser<M: Message> {
-    /// A boxed MAVLink connection object for reading messages from the TLOG file.
-    file_conn: Box<dyn MavConnection<M> + Sync + Send>,
+    /// Reads timestamped records from the TLOG file.
+    reader: TlogReader<BufReader<File>>,
+    _msg: std::marker::PhantomData<M>,
 }
 
 impl<M: Message> TlogParser<M> {
@@ -33,10 +39,11 @@ impl<M: Message> TlogParser<M> {
     /// the connection to the TLOG file cannot be established.
     ///
     pub fn new(file_path: &str) -> Self {
-        let connection_string = format!("file:{}", file_path);
-        let vehicle =
-            mavlink::connect::<M>(&connection_string).expect("An invalid file path was provided");
-        Self { file_conn: vehicle }
+        let file = File::open(file_path).expect("An invalid file path was provided");
+        Self {
+            reader: TlogReader::new(BufReader::new(file)),
+            _msg: std::marker::PhantomData,
+        }
     }
 }
 
@@ -53,15 +60,25 @@ impl<M: Message> MavParser for TlogParser<M> {
     /// metadata such as a timestamp or raw data.
     ///
     fn parse_next_entry(&mut self) -> Result<LogEntry<Self::M>, MessageReadError> {
-        match self.file_conn.recv() {
-            Ok((header, msg)) => Ok(LogEntry {
-                timestamp: None,
-                mav_header: Some(header),
-                mav_message: Some(msg),
-                text: None,
-                raw: None,
-            }),
-            Err(err) => return Err(err),
+        loop {
+            let record = match self.reader.next_record()? {
+                Some(record) => record,
+                None => return Err(MessageReadError::Io(Error::from(ErrorKind::UnexpectedEof))),
+            };
+            let version = match record.frame.version() {
+                Version::V1 => MavlinkVersion::V1,
+                Version::V2 => MavlinkVersion::V2,
+            };
+            let mut frame = PeekReader::new(record.frame.as_bytes());
+            if let Ok((header, msg)) = mavlink::read_versioned_msg::<M, _>(&mut frame, version) {
+                return Ok(LogEntry {
+                    timestamp: Some(record.timestamp_us),
+                    mav_header: Some(header),
+                    mav_message: Some(msg),
+                    text: None,
+                    raw: None,
+                });
+            }
         }
     }
 }

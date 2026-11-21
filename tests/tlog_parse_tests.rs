@@ -31,4 +31,18 @@ mod tlog_parse_tests {
         }
         assert_eq!(count, 1426);
     }
+
+    /// Every entry carries the capture time stored in its tlog record.
+    #[test]
+    fn test_tlog_parse_timestamps() {
+        let mut tlog = TlogParser::<MavMessage>::new("tests/data/tlog_data_0.tlog");
+        let first = tlog.parse_next_entry().unwrap();
+        assert_eq!(first.timestamp, Some(1_632_843_969_792_995));
+        let mut count: u64 = 1;
+        while let Ok(entry) = tlog.parse_next_entry() {
+            assert!(entry.timestamp.is_some());
+            count += 1;
+        }
+        assert_eq!(count, 1426);
+    }
 }
